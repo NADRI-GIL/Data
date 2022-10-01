@@ -7,7 +7,7 @@ from selenium.webdriver.common.by import By
 import time
 import pandas as pd
 
-driver = webdriver.Chrome("/Users/kimseogi/code/chromedriver")
+driver = webdriver.Chrome("")
 regions = ['경기도', '경상북도', '경상남도', '서울특별시', '부산광역시', '대구광역시', '인천광역시', '광주광역시', '대전광역시', '울산광역시', '세종특별자치시', '강원도', '충청북도', '충청남도', '전라북도', '전라남도', '제주특별자치도']
 
 driver.get('https://korean.visitkorea.or.kr/list/ms_list.do?choiceTag=%EC%97%AC%ED%96%89%EC%A7%80&choiceTagId=')
