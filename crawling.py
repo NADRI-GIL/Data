@@ -6,8 +6,10 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 import time
 import pandas as pd
+import pymysql
+from datetime import datetime
 
-driver = webdriver.Chrome("")
+driver = webdriver.Chrome("C:/Users/eunseo/AppData/Local/Temp/BNZ.633853164ec41f/chromedriver.exe")
 regions = ['경기도', '경상북도', '경상남도', '서울특별시', '부산광역시', '대구광역시', '인천광역시', '광주광역시', '대전광역시', '울산광역시', '세종특별자치시', '강원도', '충청북도', '충청남도', '전라북도', '전라남도', '제주특별자치도']
 
 driver.get('https://korean.visitkorea.or.kr/list/ms_list.do?choiceTag=%EC%97%AC%ED%96%89%EC%A7%80&choiceTagId=')
@@ -20,7 +22,7 @@ address = []
 lat=[]
 lon=[]
 
-for k in range(6, 10):
+for k in range(6, 9):
     print(k)
     v = "//*[@id='" + str(k) + "']"
     myInputElm = driver.find_element(by=By.XPATH, value=v)
@@ -93,7 +95,7 @@ for k in range(6, 10):
         driver.refresh()
 data = pd.DataFrame(zip(name, region, content, address,lat, lon), columns=['name', 'location', 'info', 'address', 'latitude', 'longitude'])
 
-data.to_csv('여행지 지도.csv', index=False, encoding='cp949')
+data.to_csv('C:/Users/eunseo/Desktop/study/여행지 지도.csv', index=False, encoding='cp949')
 #
 # # url = 'https://search.naver.com/search.naver?where=post&sm=tab_jum&query='+search
 # # driver.get(url)
@@ -109,3 +111,29 @@ data.to_csv('여행지 지도.csv', index=False, encoding='cp949')
 # # print(arr)
 #
 # driver.close()
+
+
+# DB 저장 
+awsHost = "43.200.49.4"
+loclaHost = "127.0.0.1"
+conn = pymysql.connect(host=awsHost, user='ec2-user', password='0109', db='nadri_gil', charset='utf8');
+
+cur = conn.cursor();
+id=0
+for i in range(0,len(name)):
+    name1 = name[i]
+    findSql = f"SELECT * FROM travel WHERE name = '{name1}'"
+    cur.execute(findSql)
+    count = cur.rowcount
+    if(count == 0):
+        region1 = region[i]
+        content1 = content[i]
+        address1 = address[i]
+        lat1 = lat[i]
+        lon1 = lon[i]
+        created_date = datetime.now()
+        id+=1
+        saveSql = f"INSERT INTO travel (travel_id, name, location, info, address, latitude, longitude, created_date) VALUES ({id},'{name1}', '{region1}' ,'{content1}','{address1}', '{lat1}','{lon1}', '{created_date}');"
+        cur.execute(saveSql)
+        conn.commit()
+conn.close()
