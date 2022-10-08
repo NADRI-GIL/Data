@@ -8,6 +8,10 @@ import time
 import pandas as pd
 import pymysql
 from datetime import datetime
+import boto3
+import os
+from urllib.request import urlopen
+import uuid
 
 driver = webdriver.Chrome("C:/Users/eunseo/AppData/Local/Temp/BNZ.633853164ec41f/chromedriver.exe")
 regions = ['경기도', '경상북도', '경상남도', '서울특별시', '부산광역시', '대구광역시', '인천광역시', '광주광역시', '대전광역시', '울산광역시', '세종특별자치시', '강원도', '충청북도', '충청남도', '전라북도', '전라남도', '제주특별자치도']
@@ -21,6 +25,7 @@ imagelist = []
 address = []
 lat=[]
 lon=[]
+images = []
 
 for k in range(6, 9):
     print(k)
@@ -47,14 +52,13 @@ for k in range(6, 9):
         for j in elements:
             travel.append(j.text)
 
-        # image = soup.find("img", class_="swiper-lazy swiper-lazy-loaded").get('src')
-        # travel.append(image)
+        image = soup.find("img", class_="swiper-lazy swiper-lazy-loaded").get('src')
+        images.append(image)
         # images = []
         # for j in range(len(image)):
         #     image = soup.find("img", class_="swiper-lazy swiper-lazy-loaded")
         #     images.append(image.get('src'))
-        #
-        # travel.append(images)
+        
 
         add = soup.select('div.inr>ul>li>span')
         for j in add:
@@ -113,10 +117,44 @@ data.to_csv('C:/Users/eunseo/Desktop/study/여행지 지도.csv', index=False, e
 # driver.close()
 
 
+def s3_connection():
+    try:
+        # s3 클라이언트 생성
+        s3 = boto3.client(
+            service_name="s3",
+            region_name="ap-northeast-2",
+            aws_access_key_id="{아이디}",
+            aws_secret_access_key="{비번}",
+        )
+    except Exception as e:
+        print(e)
+    else:
+        print("s3 bucket connected!") 
+        return s3
+
+def saveImageToS3(travelImg):
+    s3 = s3_connection()
+    travelImgInS3 = []
+    for imageUrl in travelImg:
+        imageTitle = "{}.jpg".format(uuid.uuid1())
+        imageLocation = "travel_image/{}".format(imageTitle)
+        with urlopen(imageUrl) as f:
+            with open(imageLocation, 'wb') as h:
+                img = f.read()
+                h.write(img)
+        s3.upload_file(imageLocation, "nadri-image", imageTitle)
+        if os.path.exists(imageLocation):
+            os.remove(imageLocation)
+        s3Url = "https://nadri-image.s3.ap-northeast-2.amazonaws.com/{}".format(imageTitle)
+        travelImgInS3.append(s3Url)
+    return travelImgInS3
+
+
 # DB 저장 
-awsHost = "43.200.49.4"
+travelImgInS3 = saveImageToS3(images)
+awsHost = "13.124.150.86"
 loclaHost = "127.0.0.1"
-conn = pymysql.connect(host=awsHost, user='ec2-user', password='0109', db='nadri_gil', charset='utf8');
+conn = pymysql.connect(host=awsHost, user='ec2-user', password='root', db='nadri_gil', charset='utf8');
 
 cur = conn.cursor();
 id=0
@@ -132,8 +170,10 @@ for i in range(0,len(name)):
         lat1 = lat[i]
         lon1 = lon[i]
         created_date = datetime.now()
+        last_modified_date = datetime.now()
         id+=1
-        saveSql = f"INSERT INTO travel (travel_id, name, location, info, address, latitude, longitude, created_date) VALUES ({id},'{name1}', '{region1}' ,'{content1}','{address1}', '{lat1}','{lon1}', '{created_date}');"
+        imageUrl = travelImgInS3[i]
+        saveSql = f"INSERT INTO travel (travel_id, name, location, info, address, latitude, longitude, created_date, last_modified_date, image) VALUES ({id},'{name1}', '{region1}' ,'{content1}','{address1}', '{lat1}','{lon1}', '{created_date}', '{last_modified_date}', '{imageUrl}');"
         cur.execute(saveSql)
         conn.commit()
 conn.close()
