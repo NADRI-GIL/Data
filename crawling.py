@@ -32,15 +32,19 @@ images = []
 v = "/ html / body / div[2] / div[2] / div[1] / div[2] / a[6]"
 myInputElm = driver.find_element(by=By.XPATH, value=v)
 myInputElm.click()
-
+start = 11
 # 내가 처음 가져올 페이지 // 5 - 1?
-# for page in range(11, 17, 5):
-#     v = "/ html / body / div[2] / div[2] / div[1] / div[2] / a[8]"
-#     myInputElm = driver.find_element(by=By.XPATH, value=v)
-#     myInputElm.click()
+for page in range(0, start//5-1):
+    v = "/ html / body / div[2] / div[2] / div[1] / div[2] / a[8]"
+    myInputElm = driver.find_element(by=By.XPATH, value=v)
+    myInputElm.click()
 
-for k in range(6, 12):
+for k in range(start, 30):
     print("현재 페이지 수:",k)
+    if k%5==1 and k!=start:
+        v = "/ html / body / div[2] / div[2] / div[1] / div[2] / a[8]"
+        myInputElm = driver.find_element(by=By.XPATH, value=v)
+        myInputElm.click()
     if k%5==0:
         v = "/ html / body / div[2] / div[2] / div[1] / div[2] / a[7]"
     else:
@@ -49,6 +53,8 @@ for k in range(6, 12):
     # / html / body / div[2] / div[2] / div[1] / div[2] / a[1]
     # / html / body / div[2] / div[2] / div[1] / div[2] / a[2]
     # v="//*[@id='"+str(k)+"']"
+    print(v)
+    time.sleep(2)
     myInputElm = driver.find_element(by=By.XPATH, value=v)
     myInputElm.click()
     html = driver.page_source
@@ -62,7 +68,7 @@ for k in range(6, 12):
         # //*[@id="contents"]/div[2]/div[1]/ul/li[10]/div[2]/div/a
         va = "//*[@id='contents']/div[2]/div[1]/ul/li[" + str(data) + "]/div[2]/div/a"
         driver.find_element(by=By.XPATH, value=va).send_keys(Keys.ENTER)  # xpath값 클릭하기
-        time.sleep(2)
+        time.sleep(3)
         html = driver.page_source  ## 페이지의 elements모두 가져오기
         soup = BeautifulSoup(html, 'html.parser')  ## BeautifulSoup사용하기
 
@@ -116,11 +122,14 @@ for k in range(6, 12):
         name.append(travel[0])
         region.append(travel[1].split(' ')[0])
         content.append(travel[2])
-        address.append(travel[3])
+        try:
+            address.append(travel[3])
+        except:
+            address.append('')
 
         driver.execute_script("window.history.go(-1)")
         driver.refresh()
-        time.sleep(2)
+        time.sleep(1)
 
 # data = pd.DataFrame(zip(name, region, content, address, lat, lon),
 #                     columns=['name', 'location', 'info', 'address', 'latitude', 'longitude'])
@@ -171,7 +180,7 @@ loclaHost = "127.0.0.1"
 conn = pymysql.connect(host=awsHost, user='ec2-user', password='root', db='nadri_gil', charset='utf8');
 
 cur = conn.cursor();
-id = 50
+id = start * 10 - 10
 for i in range(0, len(name)):
     name1 = name[i]
     findSql = f"SELECT * FROM travel WHERE name = '{name1}'"
